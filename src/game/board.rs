@@ -1,7 +1,6 @@
 use super::piece::Piece;
 
-
-
+/// Which player needs to make their move next
 pub enum ToMove {
     White,
     Black,
