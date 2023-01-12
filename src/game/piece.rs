@@ -1,7 +1,49 @@
-use super::{position::Position, board::Board};
+use std::fmt::Display;
 
-/// Represents a piece that can be on the chess board
-pub trait Piece {
-    /// Returns a vector of available moves for the piece
-    fn get_moves(self, position: Position, board: Board) -> Vec<Position>;
+use super::{Color, Position, Board, turn::Turn};
+
+/// Enum representing all possible kinds of pieces
+#[derive(Debug, Clone, Copy)]
+pub enum PieceType {
+    King,
+    Queen,
+    Rook,
+    Bishop,
+    Knight,
+    Pawn,
+}
+
+impl Display for PieceType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                PieceType::King => "K",
+                PieceType::Queen => "Q",
+                PieceType::Rook => "R",
+                PieceType::Bishop => "B",
+                PieceType::Knight => "N",
+                PieceType::Pawn => "P",
+            }
+        )
+    }
+}
+
+/// Represents a piece on the board
+#[derive(Debug)]
+pub struct  Piece {
+    kind: PieceType,
+    color: Color,
+    has_moved: bool,
+}
+
+impl Piece {
+    pub fn new(kind: PieceType, color: Color) -> Self {
+        Self { kind, color, has_moved: false }
+    }
+
+    pub fn get_moves(&self, pos: Position, board: &Board) -> Vec<Turn> {
+        todo!()
+    }
 }

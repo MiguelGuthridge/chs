@@ -1,24 +1,43 @@
 use std::fmt::Display;
 
+use super::Color;
+
 /// Represents a position on the chess board
-pub struct Position {
-    /// = row * 8 + column when zero-indexed
-    pos: u8
-}
+#[derive(Debug, Clone, Copy)]
+pub struct Position(u8);
 
 impl Position {
     pub fn new(row: u8, col: u8) -> Position {
-        Position { pos: row * 8 + col }
+        Position(row * 8 + col)
+    }
+
+    /// Position, for indexing into a board
+    pub fn pos(&self) -> usize {
+        self.0 as usize
+    }
+
+    /// Rank (row), as 1 - 8
+    pub fn rank(&self) -> u8 {
+        self.0 / 8 + 1
+    }
+
+    /// File (column), as 'A' - 'H'
+    pub fn file(&self) -> char {
+        (self.0 % 8 + b'A') as char
+    }
+
+    // Color of the square
+    pub fn color(&self) -> Color {
+        match self.0 % 2 {
+            0 => Color::Black,
+            1 => Color::White,
+            _ => panic!("Bruh"),
+        }
     }
 }
 
 impl Display for Position {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // Rank => 1 - 8
-        let rank = self.pos / 8 + 1;
-        // File => A - H
-        let file = (self.pos % 8 + b'A') as char;
-
-        write!(f, "{}{}", file, rank)
+        write!(f, "{}{}", self.file(), self.rank())
     }
 }
