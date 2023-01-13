@@ -73,13 +73,18 @@ impl Board {
             self.squares[capture.pos()] = None;
         }
         // Lift the main piece
-        let piece = std::mem::replace(&mut self.squares[turn.from.pos()], None)
+        let mut piece = std::mem::replace(&mut self.squares[turn.from.pos()], None)
             .expect("Move non-existent piece");
         // Lift and place the second piece
         if let Some((from, to)) = turn.additional_move {
             let secondary_piece = std::mem::replace(&mut self.squares[from.pos()], None)
                 .expect("Non-existent additional piece");
             self.squares[to.pos()] = Some(secondary_piece);
+        }
+
+        // If the piece is promoting, make that adjustment
+        if let Some(promo_kind) = turn.promote_to {
+            piece.kind = promo_kind;
         }
 
         // Now place the main piece into the correct square
@@ -94,7 +99,7 @@ impl Board {
     fn undo_turn(&mut self) -> Option<Turn> {
         let turn = self.moves.pop()?;
         // Lift piece from the expected place
-        let piece = std::mem::replace(&mut self.squares[turn.to.pos()], None)
+        let mut piece = std::mem::replace(&mut self.squares[turn.to.pos()], None)
             .expect("Undo move non-existent piece");
         // Lift and place the second piece
         if let Some((from, to)) = turn.additional_move {
@@ -107,6 +112,14 @@ impl Board {
         if let Some(capture) = turn.capture {
             self.squares[capture.pos()] = self.captures.pop();
         }
+
+        // If the piece promoted, make that adjustment
+        if let Some(promo_from) = turn.promote_from {
+            piece.kind = promo_from;
+        }
+
+        // Place the main piece
+        self.squares[turn.from.pos()] = Some(piece);
 
         Some(turn)
     }

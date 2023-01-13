@@ -33,7 +33,7 @@ impl Display for PieceType {
 /// Represents a piece on the board
 #[derive(Debug)]
 pub struct  Piece {
-    kind: PieceType,
+    pub kind: PieceType,
     color: Color,
     has_moved: bool,
 }
