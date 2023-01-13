@@ -1,6 +1,6 @@
 use arr_macro::arr;
 
-use super::{piece::Piece, turn::Turn, Color, PieceType};
+use super::{piece::Piece, turn::Turn, Color, PieceType, Position};
 
 #[derive(Debug)]
 pub struct Board {
@@ -87,6 +87,9 @@ impl Board {
             piece.kind = promo_kind;
         }
 
+        // Increment that piece's move count
+        piece.move_count += 1;
+
         // Now place the main piece into the correct square
         self.squares[turn.to.pos()] = Some(piece);
 
@@ -118,9 +121,17 @@ impl Board {
             piece.kind = promo_from;
         }
 
+        // Decrement that piece's move count
+        piece.move_count -= 1;
+
         // Place the main piece
         self.squares[turn.from.pos()] = Some(piece);
 
         Some(turn)
+    }
+
+    /// Return a reference to the piece in a particular position
+    fn at_position(&self, position: Position) -> &Option<Piece> {
+        &self.squares[position.pos()]
     }
 }

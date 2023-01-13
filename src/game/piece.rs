@@ -34,13 +34,13 @@ impl Display for PieceType {
 #[derive(Debug)]
 pub struct  Piece {
     pub kind: PieceType,
-    color: Color,
-    has_moved: bool,
+    pub color: Color,
+    pub move_count: i32,
 }
 
 impl Piece {
     pub fn new(kind: PieceType, color: Color) -> Self {
-        Self { kind, color, has_moved: false }
+        Self { kind, color, move_count: 0 }
     }
 
     pub fn get_moves(&self, pos: Position, board: &Board) -> Vec<Turn> {
