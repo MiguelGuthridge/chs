@@ -4,10 +4,10 @@ use super::Color;
 
 /// Represents a position on the chess board
 #[derive(Debug, Clone, Copy)]
-pub struct Position(u8);
+pub struct Position(i8);
 
 impl Position {
-    pub fn new(row: u8, col: u8) -> Position {
+    pub fn new(row: i8, col: i8) -> Position {
         Position(row * 8 + col)
     }
 
@@ -17,13 +17,23 @@ impl Position {
     }
 
     /// Rank (row), as 1 - 8
-    pub fn rank(&self) -> u8 {
-        self.0 / 8 + 1
+    pub fn rank(&self) -> i8 {
+        self.row() + 1
+    }
+
+    /// Rank (row), as 0 - 8
+    pub fn row(&self) -> i8 {
+        self.0 / 8
     }
 
     /// File (column), as 'A' - 'H'
     pub fn file(&self) -> char {
-        (self.0 % 8 + b'A') as char
+        (self.col() as u8 + b'A') as char
+    }
+
+    /// File (column), as 0 - 8
+    pub fn col(&self) -> i8 {
+        self.0 % 8
     }
 
     // Color of the square
@@ -32,6 +42,18 @@ impl Position {
             0 => Color::Black,
             1 => Color::White,
             _ => panic!("Bruh"),
+        }
+    }
+
+    /// Get a new position as an offset
+    pub fn offset(&self, row: i8, col: i8) -> Option<Self> {
+        let y = self.row() - row;
+        let x = self.col() - col;
+
+        if !(0..8).contains(&x) || !(0..8).contains(&y) {
+            None
+        } else {
+            Some(Self::new(row, col))
         }
     }
 }

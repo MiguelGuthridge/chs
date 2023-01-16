@@ -30,7 +30,7 @@ impl Default for Board {
 
 impl Board {
     /// Create a board in the starting position
-    fn new_from_start() -> Self {
+    pub fn new_from_start() -> Self {
         let mut board = Self::default();
 
         let piece_order = [
@@ -64,7 +64,7 @@ impl Board {
 
     /// Make a turn
     /// It is assumed that the move is legal
-    fn make_turn(&mut self, turn: Turn) {
+    pub fn make_turn(&mut self, turn: Turn) {
         // If a piece is captured, remove it
         if let Some(capture) = turn.capture {
             let captured = std::mem::replace(&mut self.squares[capture.pos()], None)
@@ -93,13 +93,14 @@ impl Board {
         // Now place the main piece into the correct square
         self.squares[turn.to.pos()] = Some(piece);
 
-        // And store the turn into the turn history
+        // And store the turn into the turn history and change whose turn it is
         self.moves.push(turn);
+        self.turn = !self.turn;
     }
 
     /// Undo the last turn
     /// Return it, or None if there is nothing to undo
-    fn undo_turn(&mut self) -> Option<Turn> {
+    pub fn undo_turn(&mut self) -> Option<Turn> {
         let turn = self.moves.pop()?;
         // Lift piece from the expected place
         let mut piece = std::mem::replace(&mut self.squares[turn.to.pos()], None)
@@ -124,14 +125,24 @@ impl Board {
         // Decrement that piece's move count
         piece.move_count -= 1;
 
-        // Place the main piece
+        // Place the main piece and change whose turn it is
         self.squares[turn.from.pos()] = Some(piece);
+        self.turn = !self.turn;
 
         Some(turn)
     }
 
     /// Return a reference to the piece in a particular position
-    fn at_position(&self, position: Position) -> &Option<Piece> {
+    pub fn at_position(&self, position: Position) -> &Option<Piece> {
         &self.squares[position.pos()]
+    }
+
+    /// Returns a reference to the previous turn
+    pub fn get_prev_turn(&self) -> Option<&Turn> {
+        if self.moves.is_empty() {
+            None
+        } else {
+            Some(&self.moves[self.moves.len() - 1])
+        }
     }
 }
