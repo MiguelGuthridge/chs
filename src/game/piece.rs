@@ -89,7 +89,7 @@ impl Piece {
     /// It does not account for the kind of piece this is
     fn get_turn_simple(&self, from: Position, to: Position, board: &Board) -> Option<Turn> {
         if let Some(piece) = board.at_position(to) {
-            if piece.color != self.color {
+            if piece.borrow().color != self.color {
                 Some(Turn::new_capture(self.kind, from, to))
             } else {
                 None
@@ -173,9 +173,9 @@ impl Piece {
                 // If it contains a piece
                 if let Some(piece) = board.at_position(new_pos) {
                     // If it's our rook
-                    if piece.kind == PieceType::Rook
-                        && piece.color == self.color
-                        && piece.move_count == 0
+                    if piece.borrow().kind == PieceType::Rook
+                        && piece.borrow().color == self.color
+                        && piece.borrow().move_count == 0
                     {
                         // We might be able to castle
                         // Check up to the resultant square that nothing is
@@ -285,7 +285,7 @@ impl Piece {
     fn pawn_capture(&self, pos: Position, c_off: i8, board: &mut Board, moves: &mut Vec<Turn>) {
         if let Some(pos_offset) = pos.offset(self.color.get_direction(), c_off) {
             if let Some(piece) = board.at_position(pos_offset) {
-                if piece.color == !self.color {
+                if piece.borrow().color == !self.color {
                     // Promotion
                     if pos_offset.row() == (!self.color).get_home() {
                         for promo in PROMOTABLE_TYPES {

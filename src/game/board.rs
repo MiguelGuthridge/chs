@@ -1,3 +1,5 @@
+use std::{cell::RefCell, rc::Rc};
+
 use arr_macro::arr;
 
 use super::{
@@ -9,10 +11,10 @@ use super::{
 #[derive(Debug, Clone)]
 pub struct Board {
     /// Pieces that have been captured
-    captures: Vec<Piece>,
+    captures: Vec<Rc<RefCell<Piece>>>,
 
     /// 8x8 board
-    squares: [Option<Piece>; 8 * 8],
+    squares: [Option<Rc<RefCell<Piece>>>; 8 * 8],
 
     /// Whose turn it is to move
     turn: Color,
@@ -50,17 +52,23 @@ impl Board {
 
         // Pieces
         for (piece, i) in piece_order.iter().zip(0..8) {
-            board.squares[i] = Some(Piece::new(*piece, Color::White));
+            board.squares[i] = Some(Rc::new(RefCell::new(Piece::new(*piece, Color::White))));
         }
         for (piece, i) in piece_order.iter().zip(56..64) {
-            board.squares[i] = Some(Piece::new(*piece, Color::Black));
+            board.squares[i] = Some(Rc::new(RefCell::new(Piece::new(*piece, Color::Black))));
         }
         // Pawns
         for i in 8..16 {
-            board.squares[i] = Some(Piece::new(PieceType::Pawn, Color::White));
+            board.squares[i] = Some(Rc::new(RefCell::new(Piece::new(
+                PieceType::Pawn,
+                Color::White,
+            ))));
         }
         for i in 48..56 {
-            board.squares[i] = Some(Piece::new(PieceType::Pawn, Color::Black));
+            board.squares[i] = Some(Rc::new(RefCell::new(Piece::new(
+                PieceType::Pawn,
+                Color::Black,
+            ))));
         }
 
         board
@@ -88,11 +96,12 @@ impl Board {
 
         // If the piece is promoting, make that adjustment
         if let Some(promo_kind) = turn.promote_to {
-            piece.kind = promo_kind;
+            piece.borrow_mut().kind = promo_kind;
         }
 
+
         // Increment that piece's move count
-        piece.move_count += 1;
+        piece.borrow_mut().move_count += 1;
 
         // Now place the main piece into the correct square
         self.squares[turn.to.pos()] = Some(piece);
@@ -123,11 +132,11 @@ impl Board {
 
         // If the piece promoted, make that adjustment
         if let Some(promo_from) = turn.promote_from {
-            piece.kind = promo_from;
+            piece.borrow_mut().kind = promo_from;
         }
 
         // Decrement that piece's move count
-        piece.move_count -= 1;
+        piece.borrow_mut().move_count -= 1;
 
         // Place the main piece and change whose turn it is
         self.squares[turn.from.pos()] = Some(piece);
@@ -137,8 +146,8 @@ impl Board {
     }
 
     /// Return a reference to the piece in a particular position
-    pub fn at_position(&self, position: Position) -> &Option<Piece> {
-        &self.squares[position.pos()]
+    pub fn at_position(&self, position: Position) -> Option<Rc<RefCell<Piece>>> {
+        self.squares[position.pos()].clone()
     }
 
     /// Return whose turn it is
@@ -170,7 +179,7 @@ impl Board {
                     if let Some(piece) = self.at_position(pos) {
                         // If that piece is of the correct color and attacks
                         // this square
-                        if piece.color == color && piece.could_move_to(pos, position, &self) {
+                        if piece.borrow_mut().color == color && piece.borrow().could_move_to(pos, position, &self) {
                             return true;
                         }
                         // Otherwise, no other pieces in this line can attack
@@ -186,7 +195,7 @@ impl Board {
         for (r, c) in KNIGHT_MOVES {
             if let Some(pos) = position.offset(r, c) {
                 if let Some(piece) = self.at_position(pos) {
-                    if piece.kind == PieceType::Knight && piece.color == color {
+                    if piece.borrow().kind == PieceType::Knight && piece.borrow().color == color {
                         return true;
                     }
                 }
@@ -208,7 +217,7 @@ impl Board {
         for i in 0..64 {
             let pos = Position::from(i);
             if let Some(piece) = self.at_position(pos) {
-                if piece.kind == PieceType::King && piece.color == !self.turn {
+                if piece.borrow().kind == PieceType::King && piece.borrow().color == !self.turn {
                     if self.are_pieces_attacking(pos, self.turn) {
                         valid = false;
                     }
