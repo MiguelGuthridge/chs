@@ -69,7 +69,7 @@ impl Piece {
     ///
     /// pos: current position of the piece
     /// board: reference to the board
-    pub fn get_moves(&self, pos: Position, board: &Board) -> Vec<Turn> {
+    pub fn get_moves(&self, pos: Position, board: &mut Board) -> Vec<Turn> {
         match self.kind {
             PieceType::King => self.king_moves(pos, board),
             PieceType::Queen => self.queen_moves(pos, board),
@@ -99,8 +99,14 @@ impl Piece {
         }
     }
 
+    fn add_move_if_legal(&self, turn: Turn, board: &mut Board, moves: &mut Vec<Turn>) {
+        if board.is_move_legal(turn.clone()) {
+            moves.push(turn);
+        }
+    }
+
     /// Get moves in a line from the given directions
-    fn line_moves(&self, pos: Position, board: &Board, directions: &[(i8, i8)]) -> Vec<Turn> {
+    fn line_moves(&self, pos: Position, board: &mut Board, directions: &[(i8, i8)]) -> Vec<Turn> {
         let mut moves = vec![];
 
         for (r_off, c_off) in directions {
@@ -108,9 +114,9 @@ impl Piece {
             while let Some(off_pos) = new_pos.offset(*r_off, *c_off) {
                 new_pos = off_pos;
                 if let Some(turn) = self.get_turn_simple(pos, new_pos, board) {
-                    // Make the move and check if it's legal
                     let was_capture = turn.capture.is_some();
-                    moves.push(turn);
+                    self.add_move_if_legal(turn, board, &mut moves);
+
                     if was_capture {
                         break;
                     }
@@ -123,30 +129,26 @@ impl Piece {
         moves
     }
 
-    fn rook_moves(&self, pos: Position, board: &Board) -> Vec<Turn> {
+    fn rook_moves(&self, pos: Position, board: &mut Board) -> Vec<Turn> {
         self.line_moves(pos, board, &[(1, 0), (0, 1), (-1, 0), (0, -1)])
     }
 
-    fn bishop_moves(&self, pos: Position, board: &Board) -> Vec<Turn> {
+    fn bishop_moves(&self, pos: Position, board: &mut Board) -> Vec<Turn> {
         self.line_moves(pos, board, &[(1, 1), (1, -1), (-1, -1), (-1, 1)])
     }
 
-    fn queen_moves(&self, pos: Position, board: &Board) -> Vec<Turn> {
-        self.line_moves(
-            pos,
-            board,
-            &KNIGHT_MOVES,
-        )
+    fn queen_moves(&self, pos: Position, board: &mut Board) -> Vec<Turn> {
+        self.line_moves(pos, board, &KNIGHT_MOVES)
     }
 
-    fn king_moves(&self, from_pos: Position, board: &Board) -> Vec<Turn> {
+    fn king_moves(&self, from_pos: Position, board: &mut Board) -> Vec<Turn> {
         let mut moves = vec![];
         for r in [-1, 0, 1] {
             for c in [-1, 0, 1] {
                 if r != 0 || c != 0 {
                     if let Some(to_pos) = from_pos.offset(r, c) {
                         if let Some(turn) = self.get_turn_simple(from_pos, to_pos, board) {
-                            moves.push(turn);
+                            self.add_move_if_legal(turn, board, &mut moves);
                         }
                     }
                 }
@@ -161,7 +163,7 @@ impl Piece {
         moves
     }
 
-    fn castling_moves(&self, from_pos: Position, board: &Board, moves: &mut Vec<Turn>) {
+    fn castling_moves(&self, from_pos: Position, board: &mut Board, moves: &mut Vec<Turn>) {
         // Find the rooks
         for (row, col, res_col) in [(0, 1, 6), (0, -1, 2)] {
             // Check each square for pieces
@@ -181,18 +183,22 @@ impl Piece {
                         // TODO
 
                         // For now just add it to the moves regardless
-                        moves.push(Turn::new_additional(
-                            self.kind,
-                            (from_pos, Position::new(from_pos.row(), res_col)),
-                            (new_pos, Position::new(from_pos.row(), res_col - col)),
-                        ));
+                        self.add_move_if_legal(
+                            Turn::new_additional(
+                                self.kind,
+                                (from_pos, Position::new(from_pos.row(), res_col)),
+                                (new_pos, Position::new(from_pos.row(), res_col - col)),
+                            ),
+                            board,
+                            moves,
+                        );
                     }
                 }
             }
         }
     }
 
-    fn knight_moves(&self, pos: Position, board: &Board) -> Vec<Turn> {
+    fn knight_moves(&self, pos: Position, board: &mut Board) -> Vec<Turn> {
         let mut moves = vec![];
 
         for (r, c) in [
@@ -208,7 +214,7 @@ impl Piece {
         ] {
             if let Some(to) = pos.offset(r, c) {
                 if let Some(turn) = self.get_turn_simple(pos, to, board) {
-                    moves.push(turn);
+                    self.add_move_if_legal(turn, board, &mut moves);
                 }
             }
         }
@@ -216,7 +222,7 @@ impl Piece {
         moves
     }
 
-    fn pawn_moves(&self, pos: Position, board: &Board) -> Vec<Turn> {
+    fn pawn_moves(&self, pos: Position, board: &mut Board) -> Vec<Turn> {
         let mut moves = vec![];
 
         self.pawn_advance(pos, board, &mut moves);
@@ -230,18 +236,24 @@ impl Piece {
         moves
     }
 
-    fn pawn_advance(&self, pos: Position, board: &Board, moves: &mut Vec<Turn>) {
+    fn pawn_advance(&self, pos: Position, board: &mut Board, moves: &mut Vec<Turn>) {
         if let Some(pos_offset) = pos.offset(self.color.get_direction(), 0) {
             if board.at_position(pos_offset).is_none() {
                 // Promotion
                 if pos_offset.row() == (!self.color).get_home() {
                     for promo in PROMOTABLE_TYPES {
-                        moves.push(Turn::new_promotion(
-                            self.kind, pos, pos_offset, promo, false,
-                        ));
+                        self.add_move_if_legal(
+                            Turn::new_promotion(self.kind, pos, pos_offset, promo, false),
+                            board,
+                            moves,
+                        );
                     }
                 } else {
-                    moves.push(Turn::new_basic(self.kind, pos, pos_offset));
+                    self.add_move_if_legal(
+                        Turn::new_basic(self.kind, pos, pos_offset),
+                        board,
+                        moves,
+                    );
                 }
             }
             // First move can be two spaces
@@ -250,31 +262,42 @@ impl Piece {
                     .offset(self.color.get_direction(), 0)
                     .expect("Since they're at row 2, we should never leave the board");
                 if board.at_position(pos_offset).is_none() {
-                    moves.push(Turn::new_basic(self.kind, pos, pos_offset));
+                    self.add_move_if_legal(
+                        Turn::new_basic(self.kind, pos, pos_offset),
+                        board,
+                        moves,
+                    );
                 }
             }
         }
     }
 
-    fn pawn_capture(&self, pos: Position, c_off: i8, board: &Board, moves: &mut Vec<Turn>) {
+    fn pawn_capture(&self, pos: Position, c_off: i8, board: &mut Board, moves: &mut Vec<Turn>) {
         if let Some(pos_offset) = pos.offset(self.color.get_direction(), c_off) {
             if let Some(piece) = board.at_position(pos_offset) {
                 if piece.color == !self.color {
                     // Promotion
                     if pos_offset.row() == (!self.color).get_home() {
                         for promo in PROMOTABLE_TYPES {
-                            moves
-                                .push(Turn::new_promotion(self.kind, pos, pos_offset, promo, true));
+                            self.add_move_if_legal(
+                                Turn::new_promotion(self.kind, pos, pos_offset, promo, true),
+                                board,
+                                moves,
+                            );
                         }
                     } else {
-                        moves.push(Turn::new_capture(self.kind, pos, pos_offset));
+                        self.add_move_if_legal(
+                            Turn::new_capture(self.kind, pos, pos_offset),
+                            board,
+                            moves,
+                        );
                     }
                 }
             }
         }
     }
 
-    fn pawn_en_passant(&self, pos: Position, board: &Board, moves: &mut Vec<Turn>) {
+    fn pawn_en_passant(&self, pos: Position, board: &mut Board, moves: &mut Vec<Turn>) {
         // Only if the pawn is at the right position
         if pos.rank() == self.color.get_home() + self.color.get_direction() * 4 {
             // If the last move was a two-space pawn push adjacent to this
@@ -286,12 +309,16 @@ impl Piece {
                     && (-1..=1).contains(&(turn.to.row() - pos.col()))
                 {
                     // Holy hell
-                    moves.push(Turn::new_capture_complex(
-                        self.kind,
-                        pos,
-                        Position::new(pos.row() + self.color.get_direction(), turn.to.col()),
-                        turn.to,
-                    ))
+                    self.add_move_if_legal(
+                        Turn::new_capture_complex(
+                            self.kind,
+                            pos,
+                            Position::new(pos.row() + self.color.get_direction(), turn.to.col()),
+                            turn.to,
+                        ),
+                        board,
+                        moves,
+                    )
                 }
             }
         }
