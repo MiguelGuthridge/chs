@@ -145,4 +145,30 @@ impl Board {
             Some(&self.moves[self.moves.len() - 1])
         }
     }
+
+    /// Returns `true` if a piece of the given color is attacking the given
+    /// position
+    pub fn are_pieces_attacking(&self, position: Position, color: Color) -> bool {
+        // Lines
+        for r in [-1, 0, 1] {
+            for c in [-1, 0, 1] {
+                if r == 0 && c == 0 { continue; }
+                let mut pos = position;
+                while let Some(p) = pos.offset(r, c) {
+                    pos = p;
+                    if let Some(piece) = self.at_position(pos) {
+                        // If that piece is of the correct color and attacks
+                        // this square
+                        if piece.color == color && true {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Knight positions
+
+        false
+    }
 }

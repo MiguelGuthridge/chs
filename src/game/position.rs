@@ -3,7 +3,7 @@ use std::fmt::Display;
 use super::Color;
 
 /// Represents a position on the chess board
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Position(i8);
 
 impl Position {
