@@ -85,7 +85,7 @@ impl Board {
             self.squares[capture.pos()] = None;
         }
         // Lift the main piece
-        let mut piece = std::mem::replace(&mut self.squares[turn.from.pos()], None)
+        let piece = std::mem::replace(&mut self.squares[turn.from.pos()], None)
             .expect("Move non-existent piece");
         // Lift and place the second piece
         if let Some((from, to)) = turn.additional_move {
@@ -116,7 +116,7 @@ impl Board {
     pub fn undo_turn(&mut self) -> Option<Turn> {
         let turn = self.moves.pop()?;
         // Lift piece from the expected place
-        let mut piece = std::mem::replace(&mut self.squares[turn.to.pos()], None)
+        let piece = std::mem::replace(&mut self.squares[turn.to.pos()], None)
             .expect("Undo move non-existent piece");
         // Lift and place the second piece
         if let Some((from, to)) = turn.additional_move {
@@ -179,7 +179,7 @@ impl Board {
                     if let Some(piece) = self.at_position(pos) {
                         // If that piece is of the correct color and attacks
                         // this square
-                        if piece.borrow_mut().color == color && piece.borrow().could_move_to(pos, position, &self) {
+                        if piece.borrow().color == color && piece.borrow().could_move_to(pos, position, &self) {
                             return true;
                         }
                         // Otherwise, no other pieces in this line can attack

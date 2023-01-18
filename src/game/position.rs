@@ -8,6 +8,8 @@ pub struct Position(i8);
 
 impl Position {
     pub fn new(row: i8, col: i8) -> Position {
+        assert!((0..8).contains(&row));
+        assert!((0..8).contains(&col));
         Position(row * 8 + col)
     }
 
@@ -53,13 +55,14 @@ impl Position {
         if !(0..8).contains(&x) || !(0..8).contains(&y) {
             None
         } else {
-            Some(Self::new(row, col))
+            Some(Self::new(y, x))
         }
     }
 }
 
 impl From<i8> for Position {
     fn from(i: i8) -> Self {
+        assert!((0..64).contains(&i));
         Self(i)
     }
 }
