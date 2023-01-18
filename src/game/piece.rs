@@ -138,7 +138,20 @@ impl Piece {
     }
 
     fn queen_moves(&self, pos: Position, board: &mut Board) -> Vec<Turn> {
-        self.line_moves(pos, board, &KNIGHT_MOVES)
+        self.line_moves(
+            pos,
+            board,
+            &[
+                (1, 0),
+                (0, 1),
+                (-1, 0),
+                (0, -1),
+                (1, 1),
+                (1, -1),
+                (-1, -1),
+                (-1, 1),
+            ],
+        )
     }
 
     fn king_moves(&self, from_pos: Position, board: &mut Board) -> Vec<Turn> {
