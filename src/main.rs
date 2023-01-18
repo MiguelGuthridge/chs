@@ -10,8 +10,8 @@ fn num_moves(board: &mut Board, depth: i32) -> i64 {
     for i in 0..64 {
         let pos = Position::from(i);
         if let Some(piece) = board.at_position(pos) {
-            if piece.borrow().color == board.whose_turn() {
-                let moves = piece.borrow().get_moves(pos, board);
+            if piece.color == board.whose_turn() {
+                let moves = board.get_moves(pos);
                 for turn in moves {
                     board.make_turn(turn);
                     count += num_moves(board, depth - 1);

@@ -77,7 +77,7 @@ impl Board {
             self.squares[capture.pos()] = None;
         }
         // Lift the main piece
-        let piece = std::mem::replace(&mut self.squares[turn.from.pos()], None)
+        let mut piece = std::mem::replace(&mut self.squares[turn.from.pos()], None)
             .expect("Move non-existent piece");
         // Lift and place the second piece
         if let Some((from, to)) = turn.additional_move {
@@ -107,7 +107,7 @@ impl Board {
     pub fn undo_turn(&mut self) -> Option<Turn> {
         let turn = self.moves.pop()?;
         // Lift piece from the expected place
-        let piece = std::mem::replace(&mut self.squares[turn.to.pos()], None)
+        let mut piece = std::mem::replace(&mut self.squares[turn.to.pos()], None)
             .expect("Undo move non-existent piece");
         // Lift and place the second piece
         if let Some((from, to)) = turn.additional_move {
@@ -137,8 +137,8 @@ impl Board {
     }
 
     /// Return a reference to the piece in a particular position
-    pub fn at_position(&self, position: Position) -> &Option<Piece> {
-        &self.squares[position.pos()]
+    pub fn at_position(&self, position: Position) -> Option<&Piece> {
+        self.squares[position.pos()].as_ref()
     }
 
     /// Return whose turn it is
@@ -407,7 +407,7 @@ impl Board {
         moves
     }
 
-    fn pawn_moves(&self, pos: Position) -> Vec<Turn> {
+    fn pawn_moves(&mut self, pos: Position) -> Vec<Turn> {
         let mut moves = vec![];
 
         let color = self.at_position(pos).unwrap().color;
@@ -423,8 +423,8 @@ impl Board {
         moves
     }
 
-    fn pawn_advance(&self, pos: Position, moves: &mut Vec<Turn>) {
-        let piece = self.at_position(pos).unwrap();
+    fn pawn_advance(&mut self, pos: Position, moves: &mut Vec<Turn>) {
+        let piece = self.at_position(pos).unwrap().clone();
         if let Some(pos_offset) = pos.offset(piece.color.get_direction(), 0) {
             if self.at_position(pos_offset).is_none() {
                 // Promotion
@@ -451,16 +451,17 @@ impl Board {
         }
     }
 
-    fn pawn_capture(&self, pos: Position, c_off: i8, moves: &mut Vec<Turn>) {
+    fn pawn_capture(&mut self, pos: Position, c_off: i8, moves: &mut Vec<Turn>) {
         let this_piece = self.at_position(pos).unwrap();
         if let Some(pos_offset) = pos.offset(this_piece.color.get_direction(), c_off) {
             if let Some(other_piece) = self.at_position(pos_offset) {
+                let other_kind = other_piece.kind;
                 if this_piece.color == !other_piece.color {
                     // Promotion
                     if pos_offset.row() == other_piece.color.get_home() {
                         for promo in PROMOTABLE_TYPES {
                             self.add_move_if_legal(
-                                Turn::new_promotion(other_piece.kind, pos, pos_offset, promo, true),
+                                Turn::new_promotion(other_kind, pos, pos_offset, promo, true),
                                 moves,
                             );
                         }
@@ -475,7 +476,7 @@ impl Board {
         }
     }
 
-    fn pawn_en_passant(&self, pos: Position, moves: &mut Vec<Turn>) {
+    fn pawn_en_passant(&mut self, pos: Position, moves: &mut Vec<Turn>) {
         let this_piece = self.at_position(pos).unwrap();
         // Only if the pawn is at the right position
         if pos.rank() == this_piece.color.get_home() + this_piece.color.get_direction() * 4 {
