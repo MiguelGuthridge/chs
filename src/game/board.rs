@@ -360,8 +360,8 @@ impl Board {
                         let to = res_col - col;
                         let start = i8::min(from, to);
                         let stop = i8::max(from, to);
-                        for r in start..stop {
-                            let pos = Position::new(r, col);
+                        for c in start..stop {
+                            let pos = Position::new(row, c);
                             // If a piece is attacking this square, castling
                             // isn't allowed on this side
                             if self.are_pieces_attacking(pos, !this_piece.color) {
