@@ -141,6 +141,11 @@ impl Board {
         &self.squares[position.pos()]
     }
 
+    /// Return whose turn it is
+    pub fn whose_turn(&self) -> Color {
+        self.turn
+    }
+
     /// Returns a reference to the previous turn
     pub fn get_prev_turn(&self) -> Option<&Turn> {
         if self.moves.is_empty() {
