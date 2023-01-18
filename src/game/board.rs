@@ -6,7 +6,7 @@ use super::{
     Color, PieceType, Position,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Board {
     /// Pieces that have been captured
     captures: Vec<Piece>,
@@ -189,5 +189,30 @@ impl Board {
         }
 
         false
+    }
+
+    /// Returns whether a move is legal - ie whether the other player
+    /// is capable of capturing the king after the move is made
+    pub fn is_move_legal(&mut self, turn: Turn) -> bool {
+        self.make_turn(turn);
+
+        let mut valid = true;
+
+        // Find our king and find if someone can attack it
+        // This is pretty inefficient - improve this at some point
+        for i in 0..64 {
+            let pos = Position::from(i);
+            if let Some(piece) = self.at_position(pos) {
+                if piece.kind == PieceType::King && piece.color == !self.turn {
+                    if self.are_pieces_attacking(pos, self.turn) {
+                        valid = false;
+                    }
+                }
+            }
+        }
+
+        self.undo_turn();
+
+        valid
     }
 }

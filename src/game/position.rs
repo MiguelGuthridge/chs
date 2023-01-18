@@ -58,6 +58,12 @@ impl Position {
     }
 }
 
+impl From<i8> for Position {
+    fn from(i: i8) -> Self {
+        Self(i)
+    }
+}
+
 impl Display for Position {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}{}", self.file(), self.rank())

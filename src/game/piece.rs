@@ -49,7 +49,7 @@ impl Display for PieceType {
 }
 
 /// Represents a piece on the board
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Piece {
     pub kind: PieceType,
     pub color: Color,
@@ -108,6 +108,7 @@ impl Piece {
             while let Some(off_pos) = new_pos.offset(*r_off, *c_off) {
                 new_pos = off_pos;
                 if let Some(turn) = self.get_turn_simple(pos, new_pos, board) {
+                    // Make the move and check if it's legal
                     let was_capture = turn.capture.is_some();
                     moves.push(turn);
                     if was_capture {
