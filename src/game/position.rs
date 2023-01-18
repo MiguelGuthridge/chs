@@ -1,9 +1,9 @@
-use std::fmt::Display;
+use std::fmt::{Display, Debug};
 
 use super::Color;
 
 /// Represents a position on the chess board
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Position(i8);
 
 impl Position {
@@ -49,8 +49,8 @@ impl Position {
 
     /// Get a new position as an offset
     pub fn offset(&self, row: i8, col: i8) -> Option<Self> {
-        let y = self.row() - row;
-        let x = self.col() - col;
+        let y = self.row() + row;
+        let x = self.col() + col;
 
         if !(0..8).contains(&x) || !(0..8).contains(&y) {
             None
@@ -70,5 +70,11 @@ impl From<i8> for Position {
 impl Display for Position {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}{}", self.file(), self.rank())
+    }
+}
+
+impl Debug for Position {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Position(row={}, col={})", self.row(), self.col())
     }
 }
