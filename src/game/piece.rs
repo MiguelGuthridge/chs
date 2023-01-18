@@ -20,6 +20,17 @@ const PROMOTABLE_TYPES: [PieceType; 4] = [
     PieceType::Knight,
 ];
 
+pub const KNIGHT_MOVES: [(i8, i8); 8] = [
+    (1, 0),
+    (0, 1),
+    (-1, 0),
+    (0, -1),
+    (1, 0),
+    (0, 1),
+    (-1, 0),
+    (0, -1),
+];
+
 impl Display for PieceType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
@@ -123,16 +134,7 @@ impl Piece {
         self.line_moves(
             pos,
             board,
-            &[
-                (1, 0),
-                (0, 1),
-                (-1, 0),
-                (0, -1),
-                (1, 0),
-                (0, 1),
-                (-1, 0),
-                (0, -1),
-            ],
+            &KNIGHT_MOVES,
         )
     }
 

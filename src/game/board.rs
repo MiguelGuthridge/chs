@@ -1,6 +1,10 @@
 use arr_macro::arr;
 
-use super::{piece::Piece, turn::Turn, Color, PieceType, Position};
+use super::{
+    piece::{Piece, KNIGHT_MOVES},
+    turn::Turn,
+    Color, PieceType, Position,
+};
 
 #[derive(Debug)]
 pub struct Board {
@@ -152,22 +156,37 @@ impl Board {
         // Lines
         for r in [-1, 0, 1] {
             for c in [-1, 0, 1] {
-                if r == 0 && c == 0 { continue; }
+                if r == 0 && c == 0 {
+                    continue;
+                }
                 let mut pos = position;
                 while let Some(p) = pos.offset(r, c) {
                     pos = p;
                     if let Some(piece) = self.at_position(pos) {
                         // If that piece is of the correct color and attacks
                         // this square
-                        if piece.color == color && true {
+                        if piece.color == color && piece.could_move_to(pos, position, &self) {
                             return true;
                         }
+                        // Otherwise, no other pieces in this line can attack
+                        break;
                     }
                 }
             }
         }
 
         // Knight positions
+        // This sorta defeats the purpose of the implementation of
+        // piece.could_knight_move_to, but at least it makes it more efficient
+        for (r, c) in KNIGHT_MOVES {
+            if let Some(pos) = position.offset(r, c) {
+                if let Some(piece) = self.at_position(pos) {
+                    if piece.kind == PieceType::Knight && piece.color == color {
+                        return true;
+                    }
+                }
+            }
+        }
 
         false
     }
