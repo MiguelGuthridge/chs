@@ -180,9 +180,19 @@ impl Piece {
                         // We might be able to castle
                         // Check up to the resultant square that nothing is
                         // under attack
-                        // TODO
+                        let from = from_pos.col() + col;
+                        let to = res_col - col;
+                        let start = i8::min(from, to);
+                        let stop = i8::max(from, to);
+                        for r in start..stop {
+                            let pos = Position::new(r, col);
+                            // If a piece is attacking this square, castling
+                            // isn't allowed on this side
+                            if board.are_pieces_attacking(pos, !self.color) {
+                                break;
+                            }
+                        }
 
-                        // For now just add it to the moves regardless
                         self.add_move_if_legal(
                             Turn::new_additional(
                                 self.kind,
