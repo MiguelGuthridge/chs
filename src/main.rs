@@ -4,6 +4,7 @@ pub mod game;
 
 fn num_moves(board: &mut Board, depth: i32) -> i64 {
     if depth == 0 {
+        println!("{}", board);
         return 1;
     }
     let mut count = 0;
