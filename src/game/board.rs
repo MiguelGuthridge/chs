@@ -70,6 +70,9 @@ impl Board {
     /// Make a turn
     /// It is assumed that the move is legal
     pub fn make_turn(&mut self, turn: Turn) {
+        println!("{}", self);
+        println!("-> {}", turn);
+
         // If a piece is captured, remove it
         if let Some(capture) = turn.capture {
             let captured = std::mem::replace(&mut self.squares[capture.pos()], None)
@@ -84,6 +87,7 @@ impl Board {
         if let Some((from, to)) = turn.additional_move {
             let secondary_piece = std::mem::replace(&mut self.squares[from.pos()], None)
                 .expect("Non-existent additional piece");
+            assert!(self.squares[to.pos()].is_none());
             self.squares[to.pos()] = Some(secondary_piece);
         }
 
@@ -96,13 +100,12 @@ impl Board {
         piece.move_count += 1;
 
         // Now place the main piece into the correct square
+        assert!(self.squares[turn.to.pos()].is_none());
         self.squares[turn.to.pos()] = Some(piece);
 
         // And store the turn into the turn history and change whose turn it is
         self.moves.push(turn);
         self.turn = !self.turn;
-
-        println!("{}", self);
     }
 
     /// Undo the last turn

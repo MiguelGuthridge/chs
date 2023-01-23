@@ -131,6 +131,9 @@ impl Turn {
 impl Display for Turn {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{} from {} to {}", self.kind, self.from, self.to)?;
+        if let Some((add_to, add_from)) = self.additional_move {
+            write!(f, ", additionally moving {} to {}", add_from, add_to)?;
+        }
         if let Some(cap_pos) = self.capture {
             if cap_pos != self.to {
                 write!(f, ", capturing {}", cap_pos)?;

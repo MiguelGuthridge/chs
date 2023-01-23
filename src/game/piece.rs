@@ -38,7 +38,7 @@ impl Display for PieceType {
             "{}",
             match self {
                 PieceType::King => "King",
-                PieceType::Queen => "Qqueen",
+                PieceType::Queen => "Queen",
                 PieceType::Rook => "Rook",
                 PieceType::Bishop => "Bishop",
                 PieceType::Knight => "Knight",
