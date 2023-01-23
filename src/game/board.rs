@@ -214,7 +214,10 @@ impl Board {
         for i in 0..64 {
             let pos = Position::from(i);
             if let Some(piece) = self.at_position(pos) {
-                if piece.kind == PieceType::King && piece.color == !self.turn && self.are_pieces_attacking(pos, self.turn) {
+                if piece.kind == PieceType::King
+                    && piece.color == !self.turn
+                    && self.are_pieces_attacking(pos, self.turn)
+                {
                     valid = false;
                 }
             }
@@ -334,9 +337,7 @@ impl Board {
         // Castling
         // Can't have moved, and must be on the first rank
         let piece = self.at_position(from_pos).unwrap();
-        if piece.move_count == 0
-            && from_pos.row() == if piece.color == Color::White { 0 } else { 7 }
-        {
+        if piece.move_count == 0 && from_pos.row() == piece.color.get_home() {
             self.castling_moves(from_pos, &mut moves);
         }
         moves
@@ -349,42 +350,61 @@ impl Board {
             let mut new_pos = from_pos;
             while let Some(pos) = new_pos.offset(row, col) {
                 new_pos = pos;
-                // If it contains a piece
-                if let Some(other_piece) = self.at_position(new_pos) {
-                    let this_piece = self.at_position(from_pos).unwrap();
-                    // If it's our rook
-                    if other_piece.kind == PieceType::Rook
-                        && other_piece.color == this_piece.color
-                        && other_piece.move_count == 0
-                    {
-                        // We might be able to castle
-                        // Check up to the resultant square that nothing is
-                        // under attack
-                        let from = from_pos.col() + col;
-                        let to = res_col - col;
-                        let start = i8::min(from, to);
-                        let stop = i8::max(from, to);
-                        for c in start..stop {
-                            let pos = Position::new(row, c);
-                            // If a piece is attacking this square, castling
-                            // isn't allowed on this side
-                            if self.are_pieces_attacking(pos, !this_piece.color) {
-                                break;
-                            }
-                        }
-
-                        self.add_move_if_legal(
-                            Turn::new_additional(
-                                this_piece.kind,
-                                (from_pos, Position::new(from_pos.row(), res_col)),
-                                (new_pos, Position::new(from_pos.row(), res_col - col)),
-                            ),
-                            moves,
-                        );
-                    }
+                if !self.castling_single_move(new_pos, from_pos, col, res_col, row, moves) {
+                    break;
                 }
             }
         }
+    }
+
+    /// Check a castling move, returning false if no more checks should be done
+    /// down this line
+    fn castling_single_move(
+        &mut self,
+        new_pos: Position,
+        from_pos: Position,
+        col: i8,
+        res_col: i8,
+        row: i8,
+        moves: &mut Vec<Turn>,
+    ) -> bool {
+        // If it contains a piece
+        if let Some(other_piece) = self.at_position(new_pos) {
+            let this_piece = self.at_position(from_pos).unwrap();
+            // If it's our rook
+            if !(other_piece.kind == PieceType::Rook
+                && other_piece.color == this_piece.color
+                && other_piece.move_count == 0)
+            {
+                return false;
+            }
+
+            // We might be able to castle
+            // Check up to the resultant square that nothing is
+            // under attack
+            let from = from_pos.col() + col;
+            let to = res_col - col;
+            let start = i8::min(from, to);
+            let stop = i8::max(from, to);
+            for c in start..stop {
+                let pos = Position::new(row, c);
+                // If a piece is attacking this square, castling
+                // isn't allowed on this side
+                if self.are_pieces_attacking(pos, !this_piece.color) {
+                    return false;
+                }
+            }
+
+            self.add_move_if_legal(
+                Turn::new_additional(
+                    this_piece.kind,
+                    (from_pos, Position::new(from_pos.row(), res_col)),
+                    (new_pos, Position::new(from_pos.row(), res_col - col)),
+                ),
+                moves,
+            );
+        }
+        true
     }
 
     fn knight_moves(&mut self, pos: Position) -> Vec<Turn> {
@@ -488,7 +508,8 @@ impl Board {
             // pawn
             if let Some(turn) = self.get_prev_turn() {
                 if turn.kind == PieceType::Pawn
-                    && turn.from.col() == (!this_piece.color).get_home() - this_piece.color.get_direction()
+                    && turn.from.col()
+                        == (!this_piece.color).get_home() - this_piece.color.get_direction()
                     && turn.to.col() == pos.col()
                     && (-1..=1).contains(&(turn.to.row() - pos.col()))
                 {
@@ -497,7 +518,10 @@ impl Board {
                         Turn::new_capture_complex(
                             this_piece.kind,
                             pos,
-                            Position::new(pos.row() + this_piece.color.get_direction(), turn.to.col()),
+                            Position::new(
+                                pos.row() + this_piece.color.get_direction(),
+                                turn.to.col(),
+                            ),
                             turn.to,
                         ),
                         moves,
