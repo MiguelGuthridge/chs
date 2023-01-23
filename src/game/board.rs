@@ -70,9 +70,6 @@ impl Board {
     /// Make a turn
     /// It is assumed that the move is legal
     pub fn make_turn(&mut self, turn: Turn) {
-        println!("{}", self);
-        println!("-> {}", turn);
-
         // If a piece is captured, remove it
         if let Some(capture) = turn.capture {
             let captured = std::mem::replace(&mut self.squares[capture.pos()], None)
