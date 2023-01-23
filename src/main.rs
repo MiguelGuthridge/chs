@@ -26,7 +26,7 @@ fn num_moves(board: &mut Board, depth: i32) -> i64 {
 fn main() {
     let mut board = Board::new_from_start();
 
-    let num = num_moves(&mut board, 4);
+    let num = num_moves(&mut board, 5);
 
     assert!(board.undo_turn().is_none());
 

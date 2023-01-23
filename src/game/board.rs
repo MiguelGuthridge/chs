@@ -101,6 +101,8 @@ impl Board {
         // And store the turn into the turn history and change whose turn it is
         self.moves.push(turn);
         self.turn = !self.turn;
+
+        println!("{}", self);
     }
 
     /// Undo the last turn
@@ -510,16 +512,16 @@ impl Display for Board {
         for (i, square) in self.squares.iter().enumerate() {
             if let Some(piece) = square {
                 let pos = Position::from(i as i8);
-                writeln!(f, "{}: {}", pos, piece)?;
+                writeln!(f, "- {}: {}", pos, piece)?;
             }
         }
         writeln!(f, "Captures:")?;
         for cap in self.captures.iter() {
-            writeln!(f, "{}", cap)?;
+            writeln!(f, "- {}", cap)?;
         }
-        write!(f, "Turns:")?;
+        writeln!(f, "Turns:")?;
         for turn in self.moves.iter() {
-            writeln!(f, "{}", turn)?;
+            writeln!(f, "- {}", turn)?;
         }
 
         Ok(())
