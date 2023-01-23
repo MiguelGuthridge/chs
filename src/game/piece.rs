@@ -37,12 +37,12 @@ impl Display for PieceType {
             f,
             "{}",
             match self {
-                PieceType::King => "K",
-                PieceType::Queen => "Q",
-                PieceType::Rook => "R",
-                PieceType::Bishop => "B",
-                PieceType::Knight => "N",
-                PieceType::Pawn => "P",
+                PieceType::King => "King",
+                PieceType::Queen => "Qqueen",
+                PieceType::Rook => "Rook",
+                PieceType::Bishop => "Bishop",
+                PieceType::Knight => "Knight",
+                PieceType::Pawn => "Pawn",
             }
         )
     }
@@ -147,5 +147,12 @@ impl Piece {
             return false;
         }
         true
+    }
+}
+
+impl Display for Piece {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {}", self.color, self.kind)?;
+        Ok(())
     }
 }

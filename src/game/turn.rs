@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use super::{PieceType, Position};
 
 /// Represents a move that can be made
@@ -16,6 +18,7 @@ pub struct Turn {
     /// The kind of piece to promote to
     pub promote_to: Option<PieceType>,
     /// The kind of piece that was promoted from
+    /// TODO: figure out why we need this
     pub promote_from: Option<PieceType>,
 }
 
@@ -122,5 +125,23 @@ impl Turn {
             promote_to: Some(promote_to),
             promote_from: Some(kind),
         }
+    }
+}
+
+impl Display for Turn {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} from {} to {}", self.kind, self.from, self.to)?;
+        if let Some(cap_pos) = self.capture {
+            if cap_pos != self.to {
+                write!(f, ", capturing {}", cap_pos)?;
+            } else {
+                write!(f, ", capturing")?;
+            }
+        }
+        if let Some(promo) = self.promote_to {
+            write!(f, ", promoting to {}", promo)?;
+        }
+
+        Ok(())
     }
 }

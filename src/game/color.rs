@@ -1,4 +1,4 @@
-use std::ops::Not;
+use std::{ops::Not, fmt::Display};
 
 /// Which player needs to make their move next
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -33,5 +33,15 @@ impl Not for Color {
             Color::White => Color::Black,
             Color::Black => Color::White,
         }
+    }
+}
+
+impl Display for Color {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self {
+            Color::White => "White",
+            Color::Black => "Black",
+        })?;
+        Ok(())
     }
 }

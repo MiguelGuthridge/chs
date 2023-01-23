@@ -1,4 +1,5 @@
 use arr_macro::arr;
+use std::fmt::{Debug, Display};
 
 use super::{
     piece::{Piece, KNIGHT_MOVES, PROMOTABLE_TYPES},
@@ -170,7 +171,7 @@ impl Board {
                     if let Some(piece) = self.at_position(pos) {
                         // If that piece is of the correct color and attacks
                         // this square
-                        if piece.color == color && piece.could_move_to(pos, position, &self) {
+                        if piece.color == color && piece.could_move_to(pos, position, self) {
                             return true;
                         }
                         // Otherwise, no other pieces in this line can attack
@@ -208,10 +209,8 @@ impl Board {
         for i in 0..64 {
             let pos = Position::from(i);
             if let Some(piece) = self.at_position(pos) {
-                if piece.kind == PieceType::King && piece.color == !self.turn {
-                    if self.are_pieces_attacking(pos, self.turn) {
-                        valid = false;
-                    }
+                if piece.kind == PieceType::King && piece.color == !self.turn && self.are_pieces_attacking(pos, self.turn) {
+                    valid = false;
                 }
             }
         }
@@ -501,5 +500,28 @@ impl Board {
                 }
             }
         }
+    }
+}
+
+impl Display for Board {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "To move: {}", self.turn)?;
+        writeln!(f, "Pieces:")?;
+        for (i, square) in self.squares.iter().enumerate() {
+            if let Some(piece) = square {
+                let pos = Position::from(i as i8);
+                writeln!(f, "{}: {}", pos, piece)?;
+            }
+        }
+        writeln!(f, "Captures:")?;
+        for cap in self.captures.iter() {
+            writeln!(f, "{}", cap)?;
+        }
+        write!(f, "Turns:")?;
+        for turn in self.moves.iter() {
+            writeln!(f, "{}", turn)?;
+        }
+
+        Ok(())
     }
 }
