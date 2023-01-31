@@ -3,9 +3,9 @@ use game::Board;
 pub mod game;
 
 fn num_moves(board: &mut Board, depth: i32) -> i64 {
-    if depth == 0 {
+    if depth == 1 {
         // println!("{}", board);
-        return 1;
+        return board.get_moves().len() as i64;
     }
 
     let mut count = 0;
