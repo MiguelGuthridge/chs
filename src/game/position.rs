@@ -1,19 +1,41 @@
-use std::fmt::{Display, Debug};
+use std::fmt::{Debug, Display};
 
-use super::Color;
+use super::{fen_consts::FenError, Color};
 
 /// Represents a position on the chess board
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Position(i8);
 
 impl Position {
-    pub fn new(row: i8, col: i8) -> Position {
+    pub fn new(row: i8, col: i8) -> Self {
         assert!((0..8).contains(&row));
         assert!((0..8).contains(&col));
         Position(row * 8 + col)
     }
 
-    /// Position, for indexing into a board
+    /// Create a position from a FEN string
+    pub fn from_fen(fen_pos: &str) -> Result<Option<Self>, FenError> {
+        if fen_pos == "-" {
+            return Ok(None);
+        }
+        let chars: Vec<char> = fen_pos.chars().collect();
+        if chars.len() != 2 {
+            return Err(FenError::InvalidPosition(fen_pos.to_string()));
+        }
+        let col_char = chars[0].to_ascii_lowercase();
+        let row_char = chars[1];
+
+        if !('a'..='h').contains(&col_char) || !('1'..='8').contains(&row_char) {
+            return Err(FenError::InvalidPosition(fen_pos.to_string()));
+        }
+
+        let row = row_char as u8 - b'1';
+        let col = col_char as u8 - b'a';
+
+        Ok(Some(Self::new(row as i8, col as i8)))
+    }
+
+    /// Position from 0..64, for indexing into a board
     pub fn pos(&self) -> usize {
         self.0 as usize
     }

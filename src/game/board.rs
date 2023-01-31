@@ -5,7 +5,7 @@ use super::{
     game_state::{DrawReason, GameState, WinReason},
     piece::{Piece, KNIGHT_MOVES, PROMOTABLE_TYPES},
     turn::Turn,
-    Color, PieceType, Position,
+    Color, PieceType, Position, fen_consts::FenError,
 };
 
 #[derive(Debug, Clone)]
@@ -74,6 +74,112 @@ impl Board {
         }
 
         board
+    }
+
+    /// Create a new board from a FEN string
+    pub fn from_fen(fen: &str) -> Result<Self, FenError> {
+        if !fen.is_ascii() {
+            return Err(FenError::NotAscii);
+        }
+
+        let mut board = Self::default();
+
+        let mut row: i8 = 7;
+        let mut col: i8 = 0;
+
+        let fen_split: Vec<&str> = fen.split_ascii_whitespace().collect();
+
+        if fen_split.len() != 6 {
+            // Invalid FEN, wrong number of sections
+            return Err(FenError::IncorrectSections(fen_split.len()));
+        }
+
+        let positions = fen_split[0];
+        let to_move = fen_split[1];
+        let castling = fen_split[2];
+        let en_passant_target = fen_split[3];
+        let half_move_clock = fen_split[4];
+        let num_moves = fen_split[5];
+
+        // Piece positions
+        for c in positions.chars() {
+            // Numbers represent spaces
+            if c.is_ascii_digit() {
+                let spaces: i8 = String::from(c).parse().unwrap();
+                col += spaces;
+                if col > 8 {
+                    // Too many spaces, invalid FEN
+                    return Err(FenError::IncorrectCols(row, col));
+                }
+            } else if c == '/' {
+                // Column should be complete
+                if col != 8 {
+                    return Err(FenError::IncorrectCols(row, col));
+                }
+                row += 1;
+                col = 0;
+                // Too many rows, invalid FEN
+                if row == 8 {
+                    return Err(FenError::IncorrectRows(row));
+                }
+            } else {
+                // If we're >= col 8, there were too many columns
+                if col >= 8 {
+                    return Err(FenError::IncorrectCols(row, col));
+                }
+                let color = if c.is_ascii_uppercase() { Color::White } else { Color::Black };
+                let kind = match c.to_ascii_lowercase() {
+                    'k' => PieceType::King,
+                    'q' => PieceType::Queen,
+                    'b' => PieceType::Bishop,
+                    'n' => PieceType::Knight,
+                    'r' => PieceType::Rook,
+                    _ => return Err(FenError::InvalidPiece(c)),
+                };
+                // Add piece to the board
+                board.squares[Position::new(row, col).pos()] = Some(Piece::new(kind, color));
+            }
+        }
+        // Afterwards, we should have completed 7 rows
+        if row != 7 {
+            return Err(FenError::IncorrectRows(row));
+        }
+
+        // Parse other info
+        board.whose_turn = Color::from_fen(to_move)?;
+        board.en_passant_target = Position::from_fen(en_passant_target)?;
+
+        // Castling logic
+        if castling == "-" {
+            // No castling allowed
+            for (pos, color) in [
+                (Position::new(0, 0), Color::White),
+                (Position::new(0, 7), Color::White),
+                (Position::new(7, 0), Color::Black),
+                (Position::new(7, 7), Color::Black),
+            ] {
+                if let Some(piece) = &mut board.squares[pos.pos()] {
+                    if piece.kind == PieceType::Rook && piece.color == color {
+                        piece.move_count = 1;
+                    }
+                }
+            }
+        } else {
+            for c in castling.chars() {
+                let (pos, color) = match c {
+                    'Q' => (Position::new(0, 0), Color::White),
+                    'K' => (Position::new(0, 7), Color::White),
+                    'q' => (Position::new(7, 0), Color::Black),
+                    'k' => (Position::new(7, 7), Color::Black),
+                    _ => return Err(FenError::IllegalCastling(castling.to_string())),
+                };
+                // if let
+                // TODO! This is too complicated AAAAAAAAAA
+                // Maybe just redo the entire castling thing
+            }
+        }
+
+        Ok(board)
     }
 
     /// Make a turn
