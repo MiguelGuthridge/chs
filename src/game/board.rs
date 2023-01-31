@@ -16,10 +16,13 @@ pub struct Board {
     squares: [Option<Piece>; 8 * 8],
 
     /// Whose turn it is to move
-    turn: Color,
+    whose_turn: Color,
 
     /// Vector of moves
     moves: Vec<Turn>,
+
+    /// Number of moves since pawn push or capture
+    moves_since_push: Vec<i8>,
 }
 
 impl Default for Board {
@@ -27,8 +30,9 @@ impl Default for Board {
         Self {
             captures: Default::default(),
             squares: arr![None; 64],
-            turn: Color::White,
+            whose_turn: Color::White,
             moves: Default::default(),
+            moves_since_push: vec![0],
         }
     }
 }
@@ -102,7 +106,7 @@ impl Board {
 
         // And store the turn into the turn history and change whose turn it is
         self.moves.push(turn);
-        self.turn = !self.turn;
+        self.whose_turn = !self.whose_turn;
     }
 
     /// Undo the last turn
@@ -134,7 +138,7 @@ impl Board {
 
         // Place the main piece and change whose turn it is
         self.squares[turn.from.pos()] = Some(piece);
-        self.turn = !self.turn;
+        self.whose_turn = !self.whose_turn;
 
         Some(turn)
     }
@@ -146,7 +150,7 @@ impl Board {
 
     /// Return whose turn it is
     pub fn whose_turn(&self) -> Color {
-        self.turn
+        self.whose_turn
     }
 
     /// Returns a reference to the previous turn
@@ -199,40 +203,84 @@ impl Board {
         false
     }
 
+    /// Find the king of a particular color
+    fn find_king(&self, color: Color) -> Position {
+        // This is pretty inefficient - improve this at some point
+        for i in 0..64 {
+            let pos = Position::from(i);
+            if let Some(piece) = self.at_position(pos) {
+                if piece.kind == PieceType::King && piece.color == color {
+                    return pos;
+                }
+            }
+        }
+        panic!("No king");
+    }
+
+    /// Returns whether the king of the given color is under attack
+    fn is_king_attacked(&self, color: Color) -> bool {
+        self.are_pieces_attacking(self.find_king(color), !color)
+    }
+
     /// Returns whether a move is legal - ie whether the other player
     /// is capable of capturing the king after the move is made
     pub fn is_move_legal(&mut self, turn: Turn) -> bool {
         self.make_turn(turn);
 
-        let mut valid = true;
-
-        // Find our king and find if someone can attack it
-        // This is pretty inefficient - improve this at some point
-        for i in 0..64 {
-            let pos = Position::from(i);
-            if let Some(piece) = self.at_position(pos) {
-                if piece.kind == PieceType::King
-                    && piece.color == !self.turn
-                    && self.are_pieces_attacking(pos, self.turn)
-                {
-                    valid = false;
-                }
-            }
-        }
+        let valid = !self.is_king_attacked(!self.whose_turn);
 
         self.undo_turn();
 
         valid
     }
 
+    /// Returns whether position is check
+    pub fn is_check(&self) -> bool {
+        self.is_king_attacked(self.whose_turn)
+    }
+
+    /// Returns whether position is checkmate
+    pub fn is_checkmate(&mut self) -> bool {
+        self.is_check() && self.get_moves().is_empty()
+    }
+
+    /// Returns whether the position is stalemate
+    pub fn is_stalemate(&mut self) -> bool {
+        !self.is_check() && self.get_moves().is_empty()
+    }
+
+    /// Returns whether the position is a draw by threefold repetition
+    pub fn is_threefold_repetition(&self) -> bool {
+        // todo!()
+        false
+    }
+
+    pub fn is_50_move_rule(&self) -> bool {
+        false
+    }
+
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
+
+    /// Returns all possible moves that can be made
+    pub fn get_moves(&mut self) -> Vec<Turn> {
+        let mut turns = vec![];
+        for i in 0..64 {
+            let pos = Position::from(i);
+            if let Some(piece) = self.at_position(pos) {
+                if piece.color == self.whose_turn() {
+                    turns.extend(self.get_piece_moves(pos));
+                }
+            }
+        }
+        turns
+    }
 
     /// Return the moves that can be legally made by a piece at the given
     /// square
     ///
     /// pos: current position of the piece
-    pub fn get_moves(&mut self, pos: Position) -> Vec<Turn> {
+    pub fn get_piece_moves(&mut self, pos: Position) -> Vec<Turn> {
         let kind = self.at_position(pos).expect("Piece not there").kind;
         match kind {
             PieceType::King => self.king_moves(pos),
@@ -531,7 +579,7 @@ impl Board {
 
 impl Display for Board {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "To move: {}", self.turn)?;
+        writeln!(f, "To move: {}", self.whose_turn)?;
         writeln!(f, "Pieces:")?;
         for (i, square) in self.squares.iter().enumerate() {
             if let Some(piece) = square {

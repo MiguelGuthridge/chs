@@ -4,7 +4,7 @@ pub mod game;
 
 fn num_moves(board: &mut Board, depth: i32) -> i64 {
     if depth == 0 {
-        println!("{}", board);
+        // println!("{}", board);
         return 1;
     }
     let mut count = 0;
@@ -12,7 +12,7 @@ fn num_moves(board: &mut Board, depth: i32) -> i64 {
         let pos = Position::from(i);
         if let Some(piece) = board.at_position(pos) {
             if piece.color == board.whose_turn() {
-                let moves = board.get_moves(pos);
+                let moves = board.get_piece_moves(pos);
                 for turn in moves {
                     board.make_turn(turn);
                     count += num_moves(board, depth - 1);
