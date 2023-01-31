@@ -2,11 +2,11 @@ use arr_macro::arr;
 use std::fmt::{Debug, Display};
 
 use super::{
+    game_state::{DrawReason, GameState, WinReason},
     piece::{Piece, KNIGHT_MOVES, PROMOTABLE_TYPES},
     turn::Turn,
-    Color, PieceType, Position, game_state::{GameState, DrawReason, WinReason},
+    Color, PieceType, Position,
 };
-
 
 #[derive(Debug, Clone)]
 pub struct Board {
@@ -24,6 +24,9 @@ pub struct Board {
 
     /// Number of moves since pawn push or capture
     ply_since_push: Vec<i8>,
+
+    /// Position to target for en passant
+    en_passant_target: Option<Position>,
 }
 
 impl Default for Board {
@@ -34,13 +37,14 @@ impl Default for Board {
             whose_turn: Color::White,
             moves: Default::default(),
             ply_since_push: vec![0],
+            en_passant_target: None,
         }
     }
 }
 
 impl Board {
     /// Create a board in the starting position
-    pub fn new_from_start() -> Self {
+    pub fn from_start() -> Self {
         let mut board = Self::default();
 
         let piece_order = [
@@ -85,7 +89,18 @@ impl Board {
         }
         // If it's a pawn push, but not a capture, record that
         if turn.kind == PieceType::Pawn && turn.capture.is_none() {
+            // If it's a two-move push, set the en passant target
+            if (turn.to.row() - turn.from.row()).abs() == 2 {
+                self.en_passant_target = Some(Position::new(
+                    (turn.to.row() + turn.from.row()) / 2,
+                    turn.from.col(),
+                ));
+            } else {
+                self.en_passant_target = None;
+            }
             self.ply_since_push.push(-1);
+        } else {
+            self.en_passant_target = None;
         }
         // Lift the main piece
         let mut piece = std::mem::replace(&mut self.squares[turn.from.pos()], None)
@@ -107,7 +122,7 @@ impl Board {
         piece.move_count += 1;
 
         // Now place the main piece into the correct square
-        assert!(self.squares[turn.to.pos()].is_none());
+        assert!(self.squares[turn.to.pos()].is_none(), "{}\n{}", self, turn);
         self.squares[turn.to.pos()] = Some(piece);
 
         // And store the turn into the turn history and change whose turn it is
@@ -146,6 +161,22 @@ impl Board {
         // Place the main piece and change whose turn it is
         self.squares[turn.from.pos()] = Some(piece);
         self.whose_turn = !self.whose_turn;
+
+        // Check the move before this to handle the en passant target
+        if let Some(prev_turn) = self.moves.last() {
+            if prev_turn.kind == PieceType::Pawn
+                && (prev_turn.to.row() - prev_turn.from.row()).abs() == 2
+            {
+                self.en_passant_target = Some(Position::new(
+                    (prev_turn.to.row() + prev_turn.from.row()) / 2,
+                    prev_turn.from.col(),
+                ));
+            } else {
+                self.en_passant_target = None;
+            }
+        } else {
+            self.en_passant_target = None;
+        }
 
         if self.ply_since_push.last() == Some(&0) {
             self.ply_since_push.pop();
@@ -558,14 +589,14 @@ impl Board {
                 } else {
                     self.add_move_if_legal(Turn::new_basic(piece.kind, pos, pos_offset), moves);
                 }
-            }
-            // First move can be two spaces
-            if pos.row() == piece.color.get_home() + piece.color.get_direction() {
-                let pos_offset = pos_offset
-                    .offset(piece.color.get_direction(), 0)
-                    .expect("Since they're at row 2, we should never leave the board");
-                if self.at_position(pos_offset).is_none() {
-                    self.add_move_if_legal(Turn::new_basic(piece.kind, pos, pos_offset), moves);
+                // First move can be two spaces
+                if pos.row() == piece.color.get_home() + piece.color.get_direction() {
+                    let pos_offset = pos_offset
+                        .offset(piece.color.get_direction(), 0)
+                        .expect("Since they're at row 2, we should never leave the board");
+                    if self.at_position(pos_offset).is_none() {
+                        self.add_move_if_legal(Turn::new_basic(piece.kind, pos, pos_offset), moves);
+                    }
                 }
             }
         }
@@ -598,31 +629,22 @@ impl Board {
 
     fn pawn_en_passant(&mut self, pos: Position, moves: &mut Vec<Turn>) {
         let this_piece = self.at_position(pos).unwrap();
-        // Only if the pawn is at the right position
-        if pos.rank() == this_piece.color.get_home() + this_piece.color.get_direction() * 4 {
-            // If the last move was a two-space pawn push adjacent to this
-            // pawn
-            if let Some(turn) = self.get_prev_turn() {
-                if turn.kind == PieceType::Pawn
-                    && turn.from.col()
-                        == (!this_piece.color).get_home() - this_piece.color.get_direction()
-                    && turn.to.col() == pos.col()
-                    && (-1..=1).contains(&(turn.to.row() - pos.col()))
-                {
-                    // Holy hell
-                    self.add_move_if_legal(
-                        Turn::new_capture_complex(
-                            this_piece.kind,
-                            pos,
-                            Position::new(
-                                pos.row() + this_piece.color.get_direction(),
-                                turn.to.col(),
-                            ),
-                            turn.to,
-                        ),
-                        moves,
-                    )
-                }
+        // If there's an en passant target
+        if let Some(target) = self.en_passant_target {
+            // If we're in a position to capture there
+            if pos.row() + this_piece.color.get_direction() == target.row()
+                && (pos.col() - target.col()).abs() == 1
+            {
+                // Holy hell
+                self.add_move_if_legal(
+                    Turn::new_capture_complex(
+                        this_piece.kind,
+                        pos,
+                        target,
+                        Position::new(pos.row(), target.col()),
+                    ),
+                    moves,
+                );
             }
         }
     }

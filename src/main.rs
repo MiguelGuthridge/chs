@@ -21,7 +21,7 @@ fn num_moves(board: &mut Board, depth: i32) -> i64 {
 fn main() {
     let depth = 6;
 
-    let mut board = Board::new_from_start();
+    let mut board = Board::from_start();
 
     let num = num_moves(&mut board, depth);
 
