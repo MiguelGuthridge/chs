@@ -68,7 +68,7 @@ pub struct Board {
     moves: Vec<Turn>,
 
     /// Number of moves since pawn push or capture
-    moves_since_push: Vec<i8>,
+    ply_since_push: Vec<i8>,
 }
 
 impl Default for Board {
@@ -78,7 +78,7 @@ impl Default for Board {
             squares: arr![None; 64],
             whose_turn: Color::White,
             moves: Default::default(),
-            moves_since_push: vec![0],
+            ply_since_push: vec![0],
         }
     }
 }
@@ -126,11 +126,11 @@ impl Board {
                 .expect("Capture non-existent piece");
             self.captures.push(captured);
             self.squares[capture.pos()] = None;
-            self.moves_since_push.push(-1);
+            self.ply_since_push.push(-1);
         }
         // If it's a pawn push, but not a capture, record that
         if turn.kind == PieceType::Pawn && turn.capture.is_none() {
-            self.moves_since_push.push(-1);
+            self.ply_since_push.push(-1);
         }
         // Lift the main piece
         let mut piece = std::mem::replace(&mut self.squares[turn.from.pos()], None)
@@ -156,7 +156,7 @@ impl Board {
         self.squares[turn.to.pos()] = Some(piece);
 
         // And store the turn into the turn history and change whose turn it is
-        *self.moves_since_push.last_mut().unwrap() += 1;
+        *self.ply_since_push.last_mut().unwrap() += 1;
         self.moves.push(turn);
         self.whose_turn = !self.whose_turn;
     }
@@ -192,10 +192,10 @@ impl Board {
         self.squares[turn.from.pos()] = Some(piece);
         self.whose_turn = !self.whose_turn;
 
-        if self.moves_since_push.last() == Some(&0) {
-            self.moves_since_push.pop();
+        if self.ply_since_push.last() == Some(&0) {
+            self.ply_since_push.pop();
         } else {
-            *self.moves_since_push.last_mut().unwrap() -= 1;
+            *self.ply_since_push.last_mut().unwrap() -= 1;
         }
 
         Some(turn)
@@ -316,7 +316,7 @@ impl Board {
 
     /// Returns whether its a draw by the 50 move rule
     pub fn is_50_move_rule(&self) -> bool {
-        *self.moves_since_push.last().unwrap() >= 50
+        *self.ply_since_push.last().unwrap() >= 100
     }
 
     /// Returns whether it's a draw by insufficient repetition
