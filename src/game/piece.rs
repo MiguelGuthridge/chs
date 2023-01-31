@@ -21,14 +21,15 @@ pub const PROMOTABLE_TYPES: [PieceType; 4] = [
 ];
 
 pub const KNIGHT_MOVES: [(i8, i8); 8] = [
-    (1, 0),
-    (0, 1),
-    (-1, 0),
-    (0, -1),
-    (1, 0),
-    (0, 1),
-    (-1, 0),
-    (0, -1),
+    // Is there a nicer way to do this?
+    (1, 2),
+    (2, 1),
+    (-1, 2),
+    (-2, 1),
+    (-1, -2),
+    (-2, -1),
+    (1, -2),
+    (2, -1),
 ];
 
 impl Display for PieceType {

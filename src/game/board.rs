@@ -272,6 +272,7 @@ impl Board {
                 }
             }
         }
+        println!("{}", self);
         panic!("No king");
     }
 
@@ -299,12 +300,12 @@ impl Board {
 
     /// Returns whether position is checkmate
     pub fn is_checkmate(&mut self) -> bool {
-        self.is_check() && self.get_moves().is_empty()
+        self.is_check() && self.do_get_moves().is_empty()
     }
 
     /// Returns whether the position is stalemate
     pub fn is_stalemate(&mut self) -> bool {
-        !self.is_check() && self.get_moves().is_empty()
+        !self.is_check() && self.do_get_moves().is_empty()
     }
 
     /// Returns whether the position is a draw by threefold repetition
@@ -362,8 +363,13 @@ impl Board {
     pub fn get_moves(&mut self) -> Vec<Turn> {
         // If it's threefold repetition or 50 move rule, skip all the checks
         if self.is_threefold_repetition() || self.is_50_move_rule() {
-            return vec![];
+            vec![]
+        } else {
+            self.do_get_moves()
         }
+    }
+
+    fn do_get_moves(&mut self) -> Vec<Turn> {
         let mut turns = vec![];
         for i in 0..64 {
             let pos = Position::from(i);
@@ -555,17 +561,7 @@ impl Board {
     fn knight_moves(&mut self, pos: Position) -> Vec<Turn> {
         let mut moves = vec![];
 
-        for (r, c) in [
-            // Is there a nicer way to do this?
-            (1, 2),
-            (2, 1),
-            (-1, 2),
-            (-2, 1),
-            (-1, -2),
-            (-2, -1),
-            (1, -2),
-            (2, -1),
-        ] {
+        for (r, c) in KNIGHT_MOVES {
             if let Some(to) = pos.offset(r, c) {
                 if let Some(turn) = self.get_turn_simple(pos, to) {
                     self.add_move_if_legal(turn, &mut moves);
