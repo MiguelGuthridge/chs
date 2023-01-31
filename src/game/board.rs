@@ -325,18 +325,18 @@ impl Board {
         false
     }
 
-    /// Returns whether the game is adraw
+    /// Returns whether the game is a draw
     pub fn is_draw(&mut self) -> bool {
-        self.is_checkmate()
-        || self.is_threefold_repetition()
-        || self.is_50_move_rule()
-        || self.is_insufficient_material()
+        !self.is_checkmate()
+            && (self.is_stalemate()
+                || self.is_threefold_repetition()
+                || self.is_50_move_rule()
+                || self.is_insufficient_material())
     }
 
     /// Returns whether the game is over
     pub fn is_game_over(&mut self) -> bool {
-        self.is_draw()
-        || self.is_checkmate()
+        self.is_draw() || self.is_checkmate()
     }
 
     /// Returns the state of the game
