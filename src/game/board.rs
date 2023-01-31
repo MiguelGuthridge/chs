@@ -7,6 +7,52 @@ use super::{
     Color, PieceType, Position,
 };
 
+/// Reasons for a draw
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DrawReason {
+    /// Same position 3 times
+    ThreefoldRepetition,
+
+    /// 50 moves without a capture or pawn push
+    FiftyMoveRule,
+
+    /// No moves available, but not checkmate
+    Stalemate,
+
+    /// Not enough material for checkmate
+    InsufficientMaterial,
+
+    /// Both players agreed to it
+    /// Not tracked
+    MutualAgreement,
+
+    /// Time out, with remaining player having insufficient mating material
+    /// Not tracked
+    TimeOut,
+}
+
+/// Reasons for a win
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum WinReason {
+    /// Win by checkmate
+    Checkmate,
+
+    /// Opponent timed out
+    /// Not tracked
+    TimeOut,
+
+    /// Opponent resigned
+    /// Not tracked
+    Resigned,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum GameState {
+    Playing,
+    Win(Color, WinReason),
+    Draw(DrawReason),
+}
+
 #[derive(Debug, Clone)]
 pub struct Board {
     /// Pieces that have been captured
@@ -270,6 +316,43 @@ impl Board {
     /// Returns whether its a draw by the 50 move rule
     pub fn is_50_move_rule(&self) -> bool {
         *self.moves_since_push.last().unwrap() >= 50
+    }
+
+    /// Returns whether it's a draw by insufficient repetition
+    pub fn is_insufficient_material(&self) -> bool {
+        // todo!()
+        false
+    }
+
+    /// Returns whether the game is adraw
+    pub fn is_draw(&mut self) -> bool {
+        self.is_checkmate()
+        || self.is_threefold_repetition()
+        || self.is_50_move_rule()
+        || self.is_insufficient_material()
+    }
+
+    /// Returns whether the game is over
+    pub fn is_game_over(&mut self) -> bool {
+        self.is_draw()
+        || self.is_checkmate()
+    }
+
+    /// Returns the state of the game
+    pub fn get_game_state(&mut self) -> GameState {
+        if self.is_checkmate() {
+            GameState::Win(!self.whose_turn, WinReason::Checkmate)
+        } else if self.is_stalemate() {
+            GameState::Draw(DrawReason::Stalemate)
+        } else if self.is_50_move_rule() {
+            GameState::Draw(DrawReason::FiftyMoveRule)
+        } else if self.is_threefold_repetition() {
+            GameState::Draw(DrawReason::ThreefoldRepetition)
+        } else if self.is_insufficient_material() {
+            GameState::Draw(DrawReason::InsufficientMaterial)
+        } else {
+            GameState::Playing
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////
