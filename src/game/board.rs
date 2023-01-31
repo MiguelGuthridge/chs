@@ -80,6 +80,11 @@ impl Board {
                 .expect("Capture non-existent piece");
             self.captures.push(captured);
             self.squares[capture.pos()] = None;
+            self.moves_since_push.push(-1);
+        }
+        // If it's a pawn push, but not a capture, record that
+        if turn.kind == PieceType::Pawn && turn.capture.is_none() {
+            self.moves_since_push.push(-1);
         }
         // Lift the main piece
         let mut piece = std::mem::replace(&mut self.squares[turn.from.pos()], None)
@@ -105,6 +110,7 @@ impl Board {
         self.squares[turn.to.pos()] = Some(piece);
 
         // And store the turn into the turn history and change whose turn it is
+        *self.moves_since_push.last_mut().unwrap() += 1;
         self.moves.push(turn);
         self.whose_turn = !self.whose_turn;
     }
@@ -139,6 +145,12 @@ impl Board {
         // Place the main piece and change whose turn it is
         self.squares[turn.from.pos()] = Some(piece);
         self.whose_turn = !self.whose_turn;
+
+        if self.moves_since_push.last() == Some(&0) {
+            self.moves_since_push.pop();
+        } else {
+            *self.moves_since_push.last_mut().unwrap() -= 1;
+        }
 
         Some(turn)
     }
@@ -255,8 +267,9 @@ impl Board {
         false
     }
 
+    /// Returns whether its a draw by the 50 move rule
     pub fn is_50_move_rule(&self) -> bool {
-        false
+        *self.moves_since_push.last().unwrap() >= 50
     }
 
     ///////////////////////////////////////////////////////////////////////////
