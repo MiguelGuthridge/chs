@@ -360,6 +360,10 @@ impl Board {
 
     /// Returns all possible moves that can be made
     pub fn get_moves(&mut self) -> Vec<Turn> {
+        // If it's threefold repetition or 50 move rule, skip all the checks
+        if self.is_threefold_repetition() || self.is_50_move_rule() {
+            return vec![];
+        }
         let mut turns = vec![];
         for i in 0..64 {
             let pos = Position::from(i);
