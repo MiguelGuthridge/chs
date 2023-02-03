@@ -1,3 +1,5 @@
+use std::num::ParseIntError;
+
 
 /// Error with FEN parsing
 #[derive(Debug)]
@@ -38,5 +40,14 @@ pub enum FenError {
     InvalidCastling(String),
 
     /// Castles aren't on home row, but castling is enabled
-    IllegalCastling(String)
+    IllegalCastling(String),
+
+    /// Failed to parse number
+    InvalidNumber(ParseIntError),
+}
+
+impl From<ParseIntError> for FenError {
+    fn from(e: ParseIntError) -> Self {
+        FenError::InvalidNumber(e)
+    }
 }

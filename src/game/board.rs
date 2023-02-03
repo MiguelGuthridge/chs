@@ -2,10 +2,11 @@ use arr_macro::arr;
 use std::fmt::{Debug, Display};
 
 use super::{
+    fen_consts::FenError,
     game_state::{DrawReason, GameState, WinReason},
     piece::{Piece, KNIGHT_MOVES, PROMOTABLE_TYPES},
     turn::Turn,
-    Color, PieceType, Position, fen_consts::FenError,
+    Color, PieceType, Position,
 };
 
 #[derive(Debug, Clone)]
@@ -22,8 +23,11 @@ pub struct Board {
     /// Vector of moves
     moves: Vec<Turn>,
 
-    /// Number of moves since pawn push or capture
-    ply_since_push: Vec<i8>,
+    /// Number of half moves since pawn push or capture
+    half_move_clock: Vec<i8>,
+
+    /// Number of full moves
+    num_moves: i32,
 
     /// Position to target for en passant
     en_passant_target: Option<Position>,
@@ -36,8 +40,9 @@ impl Default for Board {
             squares: arr![None; 64],
             whose_turn: Color::White,
             moves: Default::default(),
-            ply_since_push: vec![0],
+            half_move_clock: vec![0],
             en_passant_target: None,
+            num_moves: 1,
         }
     }
 }
@@ -98,8 +103,8 @@ impl Board {
         let to_move = fen_split[1];
         let castling = fen_split[2];
         let en_passant_target = fen_split[3];
-        let half_move_clock = fen_split[4];
-        let num_moves = fen_split[5];
+        board.half_move_clock = vec![fen_split[4].parse()?];
+        board.num_moves = fen_split[5].parse()?;
 
         // Piece positions
         for c in positions.chars() {
@@ -127,7 +132,11 @@ impl Board {
                 if col >= 8 {
                     return Err(FenError::IncorrectCols(row, col));
                 }
-                let color = if c.is_ascii_uppercase() { Color::White } else { Color::Black };
+                let color = if c.is_ascii_uppercase() {
+                    Color::White
+                } else {
+                    Color::Black
+                };
                 let kind = match c.to_ascii_lowercase() {
                     'k' => PieceType::King,
                     'q' => PieceType::Queen,
@@ -145,26 +154,23 @@ impl Board {
             return Err(FenError::IncorrectRows(row));
         }
 
-        // Parse other info
-        board.whose_turn = Color::from_fen(to_move)?;
-        board.en_passant_target = Position::from_fen(en_passant_target)?;
-
         // Castling logic
-        if castling == "-" {
-            // No castling allowed
-            for (pos, color) in [
-                (Position::new(0, 0), Color::White),
-                (Position::new(0, 7), Color::White),
-                (Position::new(7, 0), Color::Black),
-                (Position::new(7, 7), Color::Black),
-            ] {
-                if let Some(piece) = &mut board.squares[pos.pos()] {
-                    if piece.kind == PieceType::Rook && piece.color == color {
-                        piece.move_count = 1;
-                    }
+
+        // Disable castling by default, then enable it if required
+        for (pos, color) in [
+            (Position::new(0, 0), Color::White),
+            (Position::new(0, 7), Color::White),
+            (Position::new(7, 0), Color::Black),
+            (Position::new(7, 7), Color::Black),
+        ] {
+            if let Some(piece) = &mut board.squares[pos.pos()] {
+                if piece.kind == PieceType::Rook && piece.color == color {
+                    piece.move_count = 1;
                 }
             }
-        } else {
+        }
+        // If some squares can castle
+        if castling != "-" {
             for c in castling.chars() {
                 let (pos, color) = match c {
                     'Q' => (Position::new(0, 0), Color::White),
@@ -173,11 +179,19 @@ impl Board {
                     'k' => (Position::new(7, 7), Color::Black),
                     _ => return Err(FenError::IllegalCastling(castling.to_string())),
                 };
-                // if let
-                // TODO! This is too complicated AAAAAAAAAA
-                // Maybe just redo the entire castling thing
+                // If the correct rook is there
+                if let Some(piece) = &mut board.squares[pos.pos()] {
+                    if piece.kind == PieceType::Rook && piece.color == color {
+                        // Let it castle
+                        piece.move_count = 0;
+                    }
+                }
             }
         }
+
+        // Parse other info
+        board.whose_turn = Color::from_fen(to_move)?;
+        board.en_passant_target = Position::from_fen(en_passant_target)?;
 
         Ok(board)
     }
@@ -191,7 +205,7 @@ impl Board {
                 .expect("Capture non-existent piece");
             self.captures.push(captured);
             self.squares[capture.pos()] = None;
-            self.ply_since_push.push(-1);
+            self.half_move_clock.push(-1);
         }
         // If it's a pawn push, but not a capture, record that
         if turn.kind == PieceType::Pawn && turn.capture.is_none() {
@@ -204,7 +218,7 @@ impl Board {
             } else {
                 self.en_passant_target = None;
             }
-            self.ply_since_push.push(-1);
+            self.half_move_clock.push(-1);
         } else {
             self.en_passant_target = None;
         }
@@ -232,9 +246,12 @@ impl Board {
         self.squares[turn.to.pos()] = Some(piece);
 
         // And store the turn into the turn history and change whose turn it is
-        *self.ply_since_push.last_mut().unwrap() += 1;
+        *self.half_move_clock.last_mut().unwrap() += 1;
         self.moves.push(turn);
         self.whose_turn = !self.whose_turn;
+        if self.whose_turn == Color::White {
+            self.num_moves += 1;
+        }
     }
 
     /// Undo the last turn
@@ -284,10 +301,13 @@ impl Board {
             self.en_passant_target = None;
         }
 
-        if self.ply_since_push.last() == Some(&0) {
-            self.ply_since_push.pop();
+        if self.half_move_clock.last() == Some(&0) {
+            self.half_move_clock.pop();
         } else {
-            *self.ply_since_push.last_mut().unwrap() -= 1;
+            *self.half_move_clock.last_mut().unwrap() -= 1;
+        }
+        if self.whose_turn == Color::Black {
+            self.num_moves -= 1;
         }
 
         Some(turn)
@@ -408,7 +428,7 @@ impl Board {
 
     /// Returns whether its a draw by the 50 move rule
     pub fn is_50_move_rule(&self) -> bool {
-        *self.ply_since_push.last().unwrap() >= 100
+        *self.half_move_clock.last().unwrap() >= 100
     }
 
     /// Returns whether it's a draw by insufficient repetition
