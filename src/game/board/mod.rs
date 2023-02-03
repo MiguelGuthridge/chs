@@ -1,8 +1,10 @@
+mod fen;
+
 use arr_macro::arr;
 use std::fmt::{Debug, Display};
+pub use fen::FenError;
 
 use super::{
-    fen_consts::FenError,
     game_state::{DrawReason, GameState, WinReason},
     piece::{Piece, KNIGHT_MOVES, PROMOTABLE_TYPES},
     turn::Turn,

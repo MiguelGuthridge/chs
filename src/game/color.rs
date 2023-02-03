@@ -1,6 +1,6 @@
 use std::{ops::Not, fmt::Display};
 
-use super::fen_consts::FenError;
+use super::board::FenError;
 
 /// Which player needs to make their move next
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

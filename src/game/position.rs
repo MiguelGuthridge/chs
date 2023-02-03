@@ -1,6 +1,6 @@
 use std::fmt::{Debug, Display};
 
-use super::{fen_consts::FenError, Color};
+use super::{board::FenError, Color};
 
 /// Represents a position on the chess board
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]

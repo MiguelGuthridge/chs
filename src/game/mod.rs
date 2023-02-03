@@ -4,7 +4,6 @@ mod game_state;
 mod piece;
 mod position;
 mod turn;
-mod fen_consts;
 
 pub use board::Board;
 pub use color::Color;
